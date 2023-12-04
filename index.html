@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatic Query Builder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            align-items: center;
+            justify-content: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #dropdown {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        textarea {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[type="date"] {
+            appearance: none;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Automatic Query Builder</h1>
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/a4567826-6ebf-4729-b45d-963da20f0d6e/d98s2sw-6ab95312-b9a9-442b-942d-4026273f0462.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcL2E0NTY3ODI2LTZlYmYtNDcyOS1iNDVkLTk2M2RhMjBmMGQ2ZVwvZDk4czJzdy02YWI5NTMxMi1iOWE5LTQ0MmItOTQyZC00MDI2MjczZjA0NjIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.jTA_bMbWI8hfs4EGIEcJ7lOKj4aXr2JzH2_osRO9UYg"
+            width="50%">
+        </br>
+        <label for="dropdown">Select an option:</label>
+
+        <select id="dropdown" onchange="updateInfo()">
+            <option selected disabled>Select an option</option>
+            <option value="ivt">IVT Investigation</option>
+            <option value="brandSafety">Brand Safety Investigation</option>
+            <option value="updatePlacements">Placement Update</option>
+        </select>
+
+        <div class="container" id="output" style="margin-top: 20px;">
+        </div>
+    </div>
+    <footer>Created By: Ricardo Vazquez</footer>
+</body>
+
+<script>
+    const today = new Date().toISOString().substr(0, 10);
+    function updateInfo() {
+        var selectedOption = document.getElementById("dropdown").value;
+        var outputDiv = document.getElementById("output");
+
+        switch (selectedOption) {
+            case "ivt":
+                outputDiv.innerHTML = "<label for=\"IVT_advid\">Campaign(s) ADVID:<\/label>\r\n    <input type=\"text\" id=\"IVT_advid\">\r\n    \r\n\t<label for=\"IVT_fullurl\">Full URL:<\/label>\r\n    <input type=\"text\" id=\"IVT_fullurl\">\r\n\r\n    <label for=\"IVT_fromDate\">From date:<\/label>\r\n    <input type=\"date\" id=\"IVT_fromDate\">\r\n\r\n    <label for=\"IVT_toDate\">To date:<\/label>\r\n    <input type=\"date\" id=\"IVT_toDate\"><br><br><button onclick=\"generateIVTQuery()\">Generate query<\/button><textarea id=\"IVT_queryOutput\" rows=\"15\" readonly><\/textarea>";
+                document.getElementById("IVT_fromDate").value = today;
+                document.getElementById("IVT_toDate").value = today;
+                break;
+            case "updatePlacements":
+                outputDiv.innerHTML = "<input type=\"file\" id=\"fileInput\" accept=\".xlsx, .xls\" />\n        <br><button onclick=\"processFile()\">Generate query<\/button>\n        <button onclick=\"downloadQuery()\" id=\"downloadButton\" disabled>Download Query<\/button>\n        <br><br>\n        <a href=\".\/Resources\/Placement_Rename_Template.xlsx\" download=\"Placement_Rename_Template.xlsx\">Download placement rename template<\/a><textarea id=\"PLC_queryOutput\" rows=\"10\" readonly><\/textarea>";
+                break;
+            case "brandSafety":
+                outputDiv.innerHTML = "<label for=\"IVT_advid\">Campaign(s) ADVID:<\/label>\r\n    <input type=\"text\" id=\"BS_advid\">\r\n    \r\n\t<label for=\"BS_fullurl\">Full URL:<\/label>\r\n    <input type=\"text\" id=\"BS_fullurl\">\r\n\r\n    <label for=\"BS_fromDate\">From date:<\/label>\r\n    <input type=\"date\" id=\"BS_fromDate\">\r\n\r\n    <label for=\"BS_toDate\">To date:<\/label>\r\n    <input type=\"date\" id=\"BS_toDate\"><br><br><button onclick=\"generateBrandSafetyQuery()\">Generate query<\/button><textarea id=\"BS_queryOutput\" rows=\"15\" readonly><\/textarea>";
+                document.getElementById("BS_fromDate").value = today;
+                document.getElementById("BS_toDate").value = today;
+                break;
+            default:
+                outputDiv.innerHTML = "<p>Select a valid option from the dropdown</p>";
+        }
+    }
+</script>
+<script>
+    function processFile() {
+        const fileInput = document.getElementById('fileInput');
+        const outputTextarea = document.getElementById('PLC_queryOutput');
+        const downloadButton = document.getElementById('downloadButton');
+
+        const file = fileInput.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+                const result = processData(jsonData);
+
+                outputTextarea.value = result;
+                downloadButton.disabled = false; // Enable the Download button
+            };
+
+            reader.readAsArrayBuffer(file);
+        } else {
+            alert('Favor de seleccionar el archivo de Excel');
+        }
+    }
+
+    function processData(data) {
+        var updatePlacement1 = "UPDATE PLACEMENT SET NAME = '";
+        var updatePlacement2 = "' WHERE ID = ";
+        let result = "USE firewall;\n";
+
+        data.forEach(row => {
+            const placementID = row['IAS Placement ID'] || '';
+            const placementName = row['New Placement Name'] || '';
+
+            const concatenatedValue = updatePlacement1 + placementName.toString().trim() + updatePlacement2 + placementID.toString().trim() + ";";
+            result += concatenatedValue + '\n';
+        });
+        return result;
+    }
+
+    function downloadQuery() {
+        const outputTextarea = document.getElementById('PLC_queryOutput');
+        const content = outputTextarea.value;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'update_name.SQL';
+        a.click();
+    }
+
+    function generateBrandSafetyQuery(){
+        const outputTextarea = document.getElementById('BS_queryOutput');
+        const advid = document.getElementById('BS_advid').value
+        const fromDate = document.getElementById('BS_fromDate').value
+        const toDate = document.getElementById('BS_toDate').value
+        const fullUrls = document.getElementById('BS_fullurl').value
+
+        const selectIVT1 = `SELECT a.name as "campaign_name", ad.name as "advertiser", host, pub.name as "publisher",reason,action,reason_element, count(1) as "impressions"
+FROM qlog_full q
+left join firewall.pub_entity p on p.id = cast(q.pub_entity_id as int)
+left join firewall.publisher pub on pub.id = p.publisher_id
+left join firewall.adv_entity a on cast(q.adv_entity_id as int) = a.id
+left join firewall.advertiser ad on a.advertiser_id = ad.id
+WHERE DATE(parse_datetime(parquet_date, 'yyyyMMdd')) BETWEEN DATE(`;
+        const selectIVT2 = `) AND DATE(`;
+        const selectIVT4 = `\nGROUP BY a.name, ad.name, pub.name,  reason, action, reason_element, host;`;
+        
+        let advids_query = "";
+        if (advid != "") {
+            advids_query = `\nAND adv_entity_id IN (${addSingleQuotes(advid)})`
+        }
+
+        let full_url_query = "";
+        if (fullUrls != "") {
+            full_url_query = `\nAND full_url IN (${addSingleQuotes(fullUrls)})`
+        }
+         
+        const ivt_query = selectIVT1 + addSingleQuotes(fromDate) + selectIVT2 + addSingleQuotes(toDate) + ")" + advids_query + full_url_query + selectIVT4; 
+        outputTextarea.value = ivt_query;
+    }
+    
+    function generateIVTQuery(){
+        const outputTextarea = document.getElementById('IVT_queryOutput');
+        const advid = document.getElementById('IVT_advid').value
+        const fromDate = document.getElementById('IVT_fromDate').value
+        const toDate = document.getElementById('IVT_toDate').value
+        const fullUrls = document.getElementById('IVT_fullurl').value
+
+        const selectIVT1 = `SELECT
+        parquet_date
+        ,full_url
+        ,(COUNT(*) * 100) AS volume
+        ,SUM(IF(sca_challenges IS NOT NULL, 1, 0)) * 100 AS sca_volume
+        ,SUM(IF(sca_challenges IS NOT NULL, 1, 0)) / COUNT(*) AS sca_rate
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]tivt=1'), 1., 0.)) AS ivt
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givt=1'), 1., 0.)) AS givt
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givta=1'), 1., 0.)) AS givta
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givtb=1'), 1., 0.)) AS givtb
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givts=1'), 1., 0.)) AS givts
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givtt=1'), 1., 0.)) AS givtt
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]givtc=1'), 1., 0.)) AS givtc
+        ,AVG(IF(REGEXP_LIKE(COALESCE(fraud_scores,''), '[^a-z]sivt=1'), 1., 0.)) AS sivt
+FROM qlog_full
+WHERE DATE(parse_datetime(parquet_date, 'yyyyMMdd')) BETWEEN DATE(`;
+        const selectIVT2 = `) AND DATE(`;
+        const selectIVT3 = `)AND adv_entity_id IN ('1538808')`;
+        const selectIVT4 = `\nGROUP BY parquet_date, full_url;`;
+        
+        let advids_query = "";
+        if (advid != "") {
+            advids_query = `\nAND adv_entity_id IN (${addSingleQuotes(advid)})`
+        }
+
+        let full_url_query = "";
+        if (fullUrls != "") {
+            full_url_query = `\nAND full_url IN (${addSingleQuotes(fullUrls)})`
+        }
+         
+        const ivt_query = selectIVT1 + addSingleQuotes(fromDate) + selectIVT2 + addSingleQuotes(toDate) + ")" + advids_query + full_url_query + selectIVT4; 
+        outputTextarea.value = ivt_query;
+    }
+
+    function addSingleQuotes(inputString) {
+        const valuesArray = inputString.split(',');
+        const quotedValues = valuesArray.map(value => `'${value.trim()}'`);
+        return quotedValues.join(', ');
+    }
+    
+</script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+</html>
