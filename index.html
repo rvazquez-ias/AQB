@@ -101,7 +101,8 @@
 
         <select id="dropdown" onchange="updateInfo()">
             <option selected disabled>Select an option</option>
-            <option value="ivt">IVT Investigation</option>
+            <option value="ivt">IVT Investigation (Buy-side)</option>
+            <option value="ivtPub">IVT Investigation (Publishers)</option>
             <option value="brandSafety">Brand Safety Investigation</option>
             <option value="updatePlacements">Placement Update</option>
         </select>
@@ -123,6 +124,11 @@
                 outputDiv.innerHTML = "<label for=\"IVT_advid\">Campaign(s) ADVID:<\/label>\r\n    <input type=\"text\" id=\"IVT_advid\">\r\n    \r\n\t<label for=\"IVT_fullurl\">Full URL:<\/label>\r\n    <input type=\"text\" id=\"IVT_fullurl\">\r\n\r\n    <label for=\"IVT_fromDate\">From date:<\/label>\r\n    <input type=\"date\" id=\"IVT_fromDate\">\r\n\r\n    <label for=\"IVT_toDate\">To date:<\/label>\r\n    <input type=\"date\" id=\"IVT_toDate\"><br><br><button onclick=\"generateIVTQuery()\">Generate query<\/button><textarea id=\"IVT_queryOutput\" rows=\"15\" readonly><\/textarea>";
                 document.getElementById("IVT_fromDate").value = today;
                 document.getElementById("IVT_toDate").value = today;
+                break;
+            case "ivtPub":
+                outputDiv.innerHTML = "<label for=\"IVTPUB_anid\">Ad Network IDs (ANIDs):<\/label>\r\n    <input type=\"text\" id=\"IVTPUB_anid\">\r\n    \r\n\t<label for=\"IVTPUB_orders\">Orders:<\/label>\r\n    <input type=\"text\" id=\"IVTPUB_orders\">\r\n\r\n    <label for=\"IVTPUB_fromDate\">From date:<\/label>\r\n    <input type=\"date\" id=\"IVTPUB_fromDate\">\r\n\r\n    <label for=\"IVTPUB_toDate\">To date:<\/label>\r\n    <input type=\"date\" id=\"IVTPUB_toDate\"><br><br><button onclick=\"generateIVTPubQuery()\">Generate query<\/button><textarea id=\"IVTPUB_queryOutput\" rows=\"15\" readonly><\/textarea>";
+                document.getElementById("IVTPUB_fromDate").value = today;
+                document.getElementById("IVTPUB_toDate").value = today;
                 break;
             case "updatePlacements":
                 outputDiv.innerHTML = "<input type=\"file\" id=\"fileInput\" accept=\".xlsx, .xls\" />\n        <br><button onclick=\"processFile()\">Generate query<\/button>\n        <button onclick=\"downloadQuery()\" id=\"downloadButton\" disabled>Download Query<\/button>\n        <br><br>\n        <a href=\".\/Resources\/Placement_Rename_Template.xlsx\" download=\"Placement_Rename_Template.xlsx\">Download placement rename template<\/a><textarea id=\"PLC_queryOutput\" rows=\"10\" readonly><\/textarea>";
@@ -265,6 +271,97 @@ WHERE DATE(parse_datetime(parquet_date, 'yyyyMMdd')) BETWEEN DATE(`;
         const ivt_query = selectIVT1 + addSingleQuotes(fromDate) + selectIVT2 + addSingleQuotes(toDate) + ")" + advids_query + full_url_query + selectIVT4; 
         outputTextarea.value = ivt_query;
     }
+
+    function generateIVTPubQuery(){
+        const outputTextarea = document.getElementById('IVTPUB_queryOutput');
+        const anid = document.getElementById('IVTPUB_anid').value
+        const orders = document.getElementById('IVTPUB_orders').value
+        const fromDate = document.getElementById('IVTPUB_fromDate').value
+        const toDate = document.getElementById('IVTPUB_toDate').value
+
+        const selectIVT1 = `SELECT
+        q.parquet_date,
+         (COUNT(1) * 100) AS volume
+    , CAST(ROUND(AVG(q.scores_sam)) AS INT) AS sam
+    , SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) * 100 AS sca_volume
+    , SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) / COUNT(*) AS sca_rate
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1., 0.)) AS ivt
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givt=1'), 1., 0.)) AS givt
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givta=1'), 1., 0.)) AS givta
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givtb=1'), 1., 0.)) AS givtb
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givts=1'), 1., 0.)) AS givts
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givtt=1'), 1., 0.)) AS givtt
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]givtc=1'), 1., 0.)) AS givtc
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]sivt=1'), 1., 0.)) AS sivt
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]pnht1=1'), 1., 0.)) AS pnht1
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]pnht2=1'), 1., 0.)) AS pnht2
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]haps=1'), 1., 0.)) AS haps
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]habs=1'), 1., 0.)) AS habs
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]abf[0-9]'), 1., 0.)) AS abf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]mma[0-9]'), 1., 0.)) AS mm
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]mam[0-9]'), 1., 0.)) AS mam
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]msb[0-9]'), 1., 0.)) AS msb
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]mdc[0-9]'), 1., 0.)) AS mdc
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]ieb[0-9]'), 1., 0.)) AS ie
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]ca[0-9]'), 1., 0.)) AS cspf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]nd[0-9]'), 1., 0.)) AS nrt
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]mb[.,}]'), 1., 0.)) AS mb
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]mw[.,}]'), 1., 0.)) AS mw
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]d(c|g|t|n)[.,}]'), 1., 0.)) AS dc
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]cla[0-9]'), 1., 0.)) AS cl
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]ibb[0-9]'), 1., 0.)) AS ib
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]uva100'), 1., 0.)) AS dspf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]xxx[^a-z]'), 1., 0.)) AS rspf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]hspf[|][^|]+[|][^|]+[|][^|]+[|]'), 1., 0.)) AS hspf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]spf[.,}]'), 1., 0.)) AS spf_raw
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]loa[0-9]'), 1., 0.)) AS plosspf
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]b[a-p][0-9]'), 1., 0.)) AS sca_um
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]sma[0-9]'), 1., 0.)) AS sca_ml
+    , AVG(IF(REGEXP_LIKE(COALESCE(q.sad_evidence,''), '[:.]osa[0-9]'), 1., 0.)) AS osa
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“r”:1'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_raw
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:1,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r1
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:2,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r2
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:3,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r3
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:4,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r4
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:5,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r5
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:6,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r6
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:7,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r7
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:8,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r8
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:9,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r9
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:10,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r10
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:11,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r11
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:12,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r12
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:13,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r13
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:14,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r14
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:15,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r15
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:16,“r”:“1”'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r16
+    , case when SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) = 0 then 0 else SUM(IF(REGEXP_LIKE(COALESCE(q.sca_results,''), '“n”:19,“r”:“1"'), 1., 0.)) / SUM(IF(q.sca_challenges IS NOT NULL, 1., 0.)) end AS sca_r19
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht1=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_1
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht2=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_2
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht3=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_3
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht4=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_4
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht5=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_5
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht6=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_6
+    , case when SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) = 0.0 then 0.0 else SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]nht7=1'), 1.0, 0.0)) / SUM(IF(REGEXP_LIKE(COALESCE(q.fraud_scores,''), '[^a-z]tivt=1'), 1.0, 0.0)) end AS bot_type_7
+FROM qlog_full q
+WHERE DATE(parse_datetime(q.parquet_date, 'yyyyMMdd')) BETWEEN DATE(`;
+        const selectIVT2 = `) AND DATE(`;
+        const selectIVT4 = `\nGROUP BY q.parquet_date;`;
+        
+        let anids_query = "";
+        if (anid != "") {
+            anids_query = `\nAND adv_entity_id IN (${addSingleQuotes(anid)})`
+        }
+
+        let orders_query = "";
+        if (orders != "") {
+            orders_query = `\nAND q.ext_pub_order IN (${addSingleQuotes(orders)})`
+        }
+         
+        const ivt_query = selectIVT1 + addSingleQuotes(fromDate) + selectIVT2 + addSingleQuotes(toDate) + ")" + anids_query + orders_query + selectIVT4; 
+        outputTextarea.value = ivt_query;
+    }
+
 
     function addSingleQuotes(inputString) {
         const valuesArray = inputString.split(',');
