@@ -99,7 +99,7 @@
             width="50%"> -->
 
         <img src="./logo.jpg" width="50%">
-        </br>
+        </br></br>
         <label for="dropdown">Select an option:</label>
 
         <select id="dropdown" onchange="updateInfo()">
@@ -173,7 +173,7 @@
 
             reader.readAsArrayBuffer(file);
         } else {
-            alert('Favor de seleccionar el archivo de Excel');
+            alert('Please select a valid Excel file');
         }
     }
 
@@ -373,6 +373,6 @@ WHERE DATE(parse_datetime(q.parquet_date, 'yyyyMMdd')) BETWEEN DATE(`;
     }
     
 </script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
 </html>
